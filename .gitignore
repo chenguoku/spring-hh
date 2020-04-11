@@ -1,0 +1,12 @@
+/.metadata/
+.idea
+.project
+.classpath
+.factorypath
+.settings/org.eclipse.core.resources.prefs
+.settings/org.eclipse.m2e.core.prefs
+/target/
+.gradle/
+.settings
+spring-framework-3.2.6.RELEASE/
+*.iml
