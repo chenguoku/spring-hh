@@ -3,6 +3,9 @@ package com.hh.spring.spring.framework.context;
 import com.hh.spring.spring.framework.annotation.HHAutowired;
 import com.hh.spring.spring.framework.annotation.HHController;
 import com.hh.spring.spring.framework.annotation.HHService;
+import com.hh.spring.spring.framework.aop.HHJdkDynamicAopProxy;
+import com.hh.spring.spring.framework.aop.config.HHAopConfig;
+import com.hh.spring.spring.framework.aop.support.HHAdvisedSupport;
 import com.hh.spring.spring.framework.beans.HHBeanWrapper;
 import com.hh.spring.spring.framework.beans.config.HHBeanDefinition;
 import com.hh.spring.spring.framework.beans.support.HHBeanDefinitionReader;
@@ -97,7 +100,7 @@ public class HHApplicationContext {
         Object instance = beanWrapper.getWrapperInstance();
         Class<?> clazz = beanWrapper.getWrapperClass();
 
-        // TODO 在Spring中 @Component
+        // TODO：优化 在Spring中 @Component
         if (!(clazz.isAnnotationPresent(HHController.class) || clazz.isAnnotationPresent(HHService.class))) {
             return;
         }
@@ -150,16 +153,61 @@ public class HHApplicationContext {
         Object instance = null;
 
         try {
-            Class<?> clazz = Class.forName(beanClassName);
-            //默认类名首字母小写
-            instance = clazz.newInstance();
-            this.factoryBeanObjectCache.put(beanName, instance);
+
+            if (this.factoryBeanObjectCache.containsKey(beanName)) {
+                //容器中存在bean
+                instance = this.factoryBeanObjectCache.get(beanName);
+            } else {
+                //容器中没有bean，实例化bean
+                Class<?> clazz = Class.forName(beanClassName);
+                //默认类名首字母小写
+                instance = clazz.newInstance();
+
+                //==============AOP开始=====================
+                //如果满足条件，就直接返回Proxy对象
+                //1.加载AOP配置文件
+                HHAdvisedSupport config = instantiationAopConfig();
+                config.setTarget(instance);
+                config.setTargetClass(clazz);
+                config.init();
+
+                //2.判断规则，要不要生成代理类，如果要就覆盖原生对象
+                //如果不要就不做任何处理，返回原生对象
+                if (config.pointCutMatch()) {
+                    instance = new HHJdkDynamicAopProxy(config).getProxy();
+                }
+                //===============AOP结束====================
+
+                //将生成的bean，存到容器中
+                this.factoryBeanObjectCache.put(beanName, instance);
+            }
+
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return instance;
+    }
+
+    /**
+     * 加载AOP配置文件
+     *
+     * @return:
+     * @author: chenguoku
+     * @date: 2020/4/12
+     */
+    private HHAdvisedSupport instantiationAopConfig() {
+        //TODO：优化 每个对象都初始化一遍，aop config，
+        HHAopConfig config = new HHAopConfig();
+        config.setPointCut(this.reader.getConfig().getProperty("pointCut"));
+        config.setAspectClass(this.reader.getConfig().getProperty("aspectClass"));
+        config.setAspectBefore(this.reader.getConfig().getProperty("aspectBefore"));
+        config.setAspectAfter(this.reader.getConfig().getProperty("aspectAfter"));
+        config.setAspectAfterThrow(this.reader.getConfig().getProperty("aspectAfterThrow"));
+        config.setAspectAfterThrowingName(this.reader.getConfig().getProperty("aspectAfterThrowingName"));
+
+        return new HHAdvisedSupport(config);
     }
 
     private void doRegisterBeanDefinition(List<HHBeanDefinition> beanDefinitions) throws Exception {
@@ -181,7 +229,7 @@ public class HHApplicationContext {
         return this.beanDefinitionMap.keySet().toArray(new String[this.beanDefinitionMap.size()]);
     }
 
-    public Properties getConfig(){
+    public Properties getConfig() {
         return this.reader.getConfig();
     }
 }

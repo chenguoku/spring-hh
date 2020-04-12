@@ -95,7 +95,7 @@ public class HHBeanDefinitionReader {
                 //还有beanName
                 //1.默认是 类名首字母小写
                 result.add(doCreateBeanDefinition(toLowerFirstCase(beanClass.getSimpleName()), beanClass.getName()));
-                //2.TODO 自定义注入
+                //2.TODO：优化 自定义注入
 
                 //3.接口注入
                 for (Class<?> i : beanClass.getInterfaces()) {

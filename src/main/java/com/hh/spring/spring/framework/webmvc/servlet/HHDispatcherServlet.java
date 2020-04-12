@@ -90,7 +90,7 @@ public class HHDispatcherServlet extends HttpServlet {
             return;
         }
 
-        // TODO ? 为什么用 for循环
+        // TODO ：优化 多个HHViewResolver
         for (HHViewResolver viewResolver : this.viewResolvers) {
             HHView hhView = viewResolver.resolveViewName(mv.getViewName());
             //直接往浏览器上输出

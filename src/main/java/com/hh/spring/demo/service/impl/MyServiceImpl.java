@@ -14,6 +14,7 @@ import com.hh.spring.spring.framework.annotation.HHService;
 public class MyServiceImpl implements MyService {
     @Override
     public String test() {
+        System.out.println("test");
         return "Hello World!";
     }
 }
